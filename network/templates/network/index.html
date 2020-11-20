@@ -1,0 +1,30 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+    {% if user.is_authenticated %}
+        <strong>New Post</strong>
+        <form action="{% url 'index' %}" method="POST">
+            {% csrf_token %}
+            {{ new_post }}
+            <input type="submit" value="Submit new post">
+        </form>
+    {% endif %}
+
+    {% for post in all_posts %}
+        <div class="post">
+            <strong>{{ post.user }}</strong>
+
+            {% if post.user.id == user.id %}
+                <a class="nav-link" href="#">Edit</a>
+            {% endif %}
+
+            {{ post.content }}
+            <br>
+            {{ post.date_added }}   
+            <br>
+            {{ post.likes }} likes
+
+        </div>
+        
+    {% endfor %}
+{% endblock %}
