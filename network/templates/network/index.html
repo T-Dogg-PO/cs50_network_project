@@ -1,30 +1,56 @@
 {% extends "network/layout.html" %}
+{% load static %}
 
 {% block body %}
     {% if user.is_authenticated %}
-        <strong>New Post</strong>
         <form action="{% url 'index' %}" method="POST">
             {% csrf_token %}
-            {{ new_post }}
-            <input type="submit" value="Submit new post">
+            <div class="form-group ml-5">
+                <label for="newPost" class="h4">New Post</label>
+                {{ new_post }}
+                <input class="btn btn-primary mt-2" type="submit" value="Submit new post">
+            </div>
         </form>
     {% endif %}
 
     {% for post in all_posts %}
         <div class="post">
-            <strong>{{ post.user }}</strong>
+            <div class="border border-primary rounded w-25 mt-2 ml-5">
+                <div class="my-1 px-2">
+                    <div>
+                        <strong>{{ post.user }}</strong>
+                    </div>
 
-            {% if post.user.id == user.id %}
-                <a class="nav-link" href="#">Edit</a>
-            {% endif %}
+                    {% if post.user.id == user.id %}
+                        <div id="edit">
+                        
+                            <a href="#" class="edit_button" id="{{ post.id }}_edit_button" onclick="makeEditable( {{post.id}} )">Edit</a>
 
-            {{ post.content }}
-            <br>
-            {{ post.date_added }}   
-            <br>
-            {{ post.likes }} likes
+                            <div class="edit_form" id="{{ post.id }}_edit_form">
+                                <textarea class="edit_textarea" id="{{ post.id }}_edit_content">{{ post.content }}</textarea>
+                                <button onclick="saveEdit( {{post.id}} )">Save</button>
+                            </div>
+
+                        
+
+                        </div>
+                    {% endif %}
+
+                    <div class="post_body" id="{{ post.id }}_post_body">
+                        {{ post.content }}
+                    </div>
+
+                    <div class="text-muted">
+                        {{ post.date_added }}
+                    </div>
+                    <div class="text-muted">
+                        {{ post.likes }} likes
+                    </div>
+                </div>
+            </div>
 
         </div>
         
     {% endfor %}
 {% endblock %}
+

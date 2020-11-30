@@ -1,0 +1,11 @@
+.edit_form {
+    display: none;
+}
+
+.edit_button {
+    display: block;
+}
+
+.post_body {
+    display: block;
+}

@@ -1,9 +1,11 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django import forms
+import json
+from django.contrib.auth.decorators import login_required
 
 from .models import User, Post
 
@@ -12,6 +14,11 @@ class Create(forms.ModelForm):
     class Meta:
         model = Post
         fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={
+                'class': 'form-control w-25'
+                })
+        }
         labels = {
             'content': ('')
         }
@@ -29,14 +36,32 @@ def index(request):
             new_post.save()
 
             return render(request, "network/index.html", {
-                "all_posts": Post.objects.all(),
+                "all_posts": Post.objects.all().order_by('-date_added'),
                 "new_post": Create()
             })
 
     return render(request, "network/index.html", {
-        "all_posts": Post.objects.all(),
+        "all_posts": Post.objects.all().order_by('-date_added'),
         "new_post": Create()
     })
+
+
+# View for editing a post to be used by JavaScript
+@login_required
+def edit(request, post_id):
+    if request.method != "PUT":
+        return JsonResponse({"error": "PUT request required."}, status=400)
+    
+    try:
+        post_for_editing = Post.objects.get(user=request.user, id=post_id)
+    except:
+        return JsonResponse({"error": "Post not found"}, status=400)
+
+    data = json.loads(request.body)
+    post_for_editing.content = data["content"]
+    post_for_editing.save()
+    return HttpResponse(status=204)
+
 
 
 
