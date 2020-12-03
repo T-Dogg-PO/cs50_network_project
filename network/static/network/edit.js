@@ -57,3 +57,35 @@ function saveEdit(post_id) {
         document.getElementById(original_id).style.display = 'block';
     });
 }
+
+
+// Function for following / unfollowing
+function followSave(profile_id, user_id) {
+
+    fetch('/follow', {
+        method: 'PUT',
+        headers: { // Set the X-CSRFToken header to the csrf token obtained from getCookie
+            "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: JSON.stringify({
+            profile: profile_id,
+            user_who_is_following: user_id
+        })
+        
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('follower_count').innerHTML = data.total_followers;
+    })
+    .then(result => {
+        console.log(result);
+        if (document.getElementById('follow').style.display === 'none') {
+            document.getElementById('follow').style.display = 'block';
+            document.getElementById('unfollow').style.display = 'none';
+        } else {
+            document.getElementById('follow').style.display = 'none';
+            document.getElementById('unfollow').style.display = 'block';
+        }
+        
+    })
+}
