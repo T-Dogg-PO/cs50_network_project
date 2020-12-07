@@ -7,13 +7,13 @@
 
     <h6><span id="follower_count">{{ followers_count }}</span> followers</h6>
 
-    {% if profile_user.id != user.id %}
+    {% if profile_user.id != user.id and user.is_authenticated %}
         {% if existing_follow == False %}
-            <button style="display: block" onclick="followSave( {{ profile_user.id }}, {{ user.id }} )" id="follow">Follow {{ profile_user }}</button>
-            <button style="display: none" onclick="followSave( {{ profile_user.id }}, {{ user.id }} )" id="unfollow">Unfollow {{ profile_user }}</button>
+            <button style="display: block" onclick="followSave( {{ profile_user.id }} )" id="follow">Follow {{ profile_user }}</button>
+            <button style="display: none" onclick="followSave( {{ profile_user.id }} )" id="unfollow">Unfollow {{ profile_user }}</button>
         {% else %}
-            <button style="display: block" onclick="followSave( {{ profile_user.id }}, {{ user.id }} )" id="unfollow">Unfollow {{ profile_user }}</button>
-            <button style="display: none" onclick="followSave( {{ profile_user.id }}, {{ user.id }} )" id="follow">Follow {{ profile_user }}</button>
+            <button style="display: block" onclick="followSave( {{ profile_user.id }} )" id="unfollow">Unfollow {{ profile_user }}</button>
+            <button style="display: none" onclick="followSave( {{ profile_user.id }} )" id="follow">Follow {{ profile_user }}</button>
         {% endif %}
     {% endif %}
 

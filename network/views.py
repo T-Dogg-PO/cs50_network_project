@@ -66,30 +66,33 @@ def edit(request, post_id):
 
 # View for loading the profile page of a user
 def profile(request, requested_user_id):
-
+    # Get the User object for the user who's profile is going to be looked at
     profile_user = User.objects.get(id=requested_user_id)
-
+    # Get all of the UserFollowing objects for this user
     followers = profile_user.followers.all()
-
+    # Count the number of followers returned so that we can display this on our page
     if followers == None:
         followers_count = 0
     else:
         followers_count = len(followers)
-
-    following_user = request.user
     
-    try:
-        existing_follow = UserFollowing.objects.get(user_id=following_user, following_user_id=profile_user)
-    except UserFollowing.DoesNotExist:
+    # Check to see if the user is logged in, and if logged in user is already following the target user.
+    if request.user.is_anonymous:
         existing_follow = None
+    else:
+        following_user = request.user
+        try:
+            existing_follow = UserFollowing.objects.get(user_id=following_user, following_user_id=profile_user)
+        except UserFollowing.DoesNotExist:
+            existing_follow = None
 
-    print(f'{existing_follow}')
-
+    # Set up True/False variable for hiding/showing the follow button
     if existing_follow != None:
         existing_follow_button = True
     else:
         existing_follow_button = False
 
+    # Load the profile page
     return render(request, "network/profile.html", {
         "profile_user": profile_user,
         "user_posts": Post.objects.filter(user=profile_user).order_by('-date_added'),
@@ -101,31 +104,36 @@ def profile(request, requested_user_id):
 # View for following/unfollowing, to be used by JavaScript
 @login_required
 def follow(request):
-    
-
+    # Check that the request method is PUT
     if request.method != "PUT":
         return JsonResponse({"error": "POST request required."}, status=400)
 
+    # Load the json body into the 'data' variable
     data = json.loads(request.body)
-    requested_user_id = data["user_who_is_following"]
+    # Take data information and store components in relevant varaibles
     requested_following_id = data["profile"]
 
+    # Get User objects for the person following/unfollowing, and the person being followed
     follower = request.user
     user = User.objects.get(id=requested_following_id)
 
-    
+    # Determine if follower is already following this profile or not
     try:
         existing_follow = UserFollowing.objects.get(user_id=follower, following_user_id=user)
     except UserFollowing.DoesNotExist:
         existing_follow = None
     
+    # Either create a new UserFollowing object or delete the relevant object
     if existing_follow == None:
         UserFollowing.objects.create(user_id=follower, following_user_id=user)
     else:
         existing_follow.delete()
     
+    # Get the new total followers count for this profile
     total_followers = UserFollowing.objects.filter(following_user_id=user).count()
     
+    # Return the total_followers number as a JsonResponse, to be used by JavaScript to update the followers count
+    # without reloading the page
     return JsonResponse({"total_followers": total_followers})
 
 

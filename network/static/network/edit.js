@@ -60,8 +60,8 @@ function saveEdit(post_id) {
 
 
 // Function for following / unfollowing
-function followSave(profile_id, user_id) {
-
+function followSave(profile_id) {
+    // Send fetch request to the follow view
     fetch('/follow', {
         method: 'PUT',
         headers: { // Set the X-CSRFToken header to the csrf token obtained from getCookie
@@ -69,16 +69,18 @@ function followSave(profile_id, user_id) {
         },
         body: JSON.stringify({
             profile: profile_id,
-            user_who_is_following: user_id
         })
         
     })
+    // Convert response from follow view to json
     .then(response => response.json())
+    // Take the response data and update the follower_count without needing to reload the page
     .then(data => {
         document.getElementById('follower_count').innerHTML = data.total_followers;
     })
     .then(result => {
         console.log(result);
+        // Update the follow/unfollow button
         if (document.getElementById('follow').style.display === 'none') {
             document.getElementById('follow').style.display = 'block';
             document.getElementById('unfollow').style.display = 'none';
