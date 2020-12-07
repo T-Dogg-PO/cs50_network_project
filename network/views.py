@@ -6,6 +6,7 @@ from django.urls import reverse
 from django import forms
 import json
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 
 from .models import User, Post, UserFollowing
 
@@ -35,13 +36,35 @@ def index(request):
             new_post.content = create_post.cleaned_data['content']
             new_post.save()
 
+            # Setting up pagination to only show 10 posts on the page at once
+            # Get all posts ordered by date added
+            all_posts = Post.objects.all().order_by('-date_added')
+            # Use the Paginator function to split all_posts into pages of 10
+            paginator = Paginator(all_posts, 10)
+
+            # Get the information for what page the user wants to view
+            page_number = request.GET.get('page')
+            # Get a page object using both the page number and the paginator above
+            page_obj = paginator.get_page(page_number)
+
             return render(request, "network/index.html", {
-                "all_posts": Post.objects.all().order_by('-date_added'),
+                "page_obj": page_obj,
                 "new_post": Create()
             })
 
+    # Setting up pagination to only show 10 posts on the page at once
+    # Get all posts ordered by date added
+    all_posts = Post.objects.all().order_by('-date_added')
+    # Use the Paginator function to split all_posts into pages of 10
+    paginator = Paginator(all_posts, 10)
+
+    # Get the information for what page the user wants to view
+    page_number = request.GET.get('page')
+    # Get a page object using both the page number and the paginator above
+    page_obj = paginator.get_page(page_number)
+
     return render(request, "network/index.html", {
-        "all_posts": Post.objects.all().order_by('-date_added'),
+        "page_obj": page_obj,
         "new_post": Create()
     })
 
@@ -92,10 +115,21 @@ def profile(request, requested_user_id):
     else:
         existing_follow_button = False
 
+    # Setting up pagination to only show 10 posts on the page at once
+    # Get all posts ordered by date added
+    all_posts = Post.objects.filter(user=profile_user).order_by('-date_added')
+    # Use the Paginator function to split all_posts into pages of 10
+    paginator = Paginator(all_posts, 10)
+
+    # Get the information for what page the user wants to view
+    page_number = request.GET.get('page')
+    # Get a page object using both the page number and the paginator above
+    page_obj = paginator.get_page(page_number)
+
     # Load the profile page
     return render(request, "network/profile.html", {
         "profile_user": profile_user,
-        "user_posts": Post.objects.filter(user=profile_user).order_by('-date_added'),
+        "page_obj": page_obj,
         "followers_count": followers_count,
         "existing_follow": existing_follow_button
     })
