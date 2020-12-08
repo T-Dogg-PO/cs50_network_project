@@ -11,9 +11,12 @@ class User(AbstractUser):
 class Post(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField(blank=False)
-    likes = models.IntegerField(default=0)
+    likes = models.ManyToManyField(User, related_name='post_likes')
     date_added = models.DateTimeField(auto_now_add=True)
     number_followers = models.IntegerField(default=0)
+
+    def likes_count(self):
+        return self.likes.count()
 
 
 # Class for users following other users

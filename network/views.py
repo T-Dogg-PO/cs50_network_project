@@ -140,7 +140,7 @@ def profile(request, requested_user_id):
 def follow(request):
     # Check that the request method is PUT
     if request.method != "PUT":
-        return JsonResponse({"error": "POST request required."}, status=400)
+        return JsonResponse({"error": "PUT request required."}, status=400)
 
     # Load the json body into the 'data' variable
     data = json.loads(request.body)
@@ -169,6 +169,36 @@ def follow(request):
     # Return the total_followers number as a JsonResponse, to be used by JavaScript to update the followers count
     # without reloading the page
     return JsonResponse({"total_followers": total_followers})
+
+
+# Method for liking/unliking posts
+@login_required
+def like(request):
+    if request.method != "PUT":
+        return JsonResponse({"error": "PUT request required."}, status=400)
+
+    data = json.loads(request.body)
+    post_id = data["post"]
+
+    post = Post.objects.get(id=post_id)
+
+    liking_user = request.user
+
+    user_like = False
+
+    if post.likes.filter(id=liking_user.id).exists():
+        post.likes.remove(liking_user)
+        user_like = False
+    else:
+        post.likes.add(request.user)
+        user_like = True
+    
+    total_likes = post.likes.all().count()
+
+    return JsonResponse({
+        "total_likes": total_likes,
+        "user_like": user_like
+    })
 
 
 def login_view(request):

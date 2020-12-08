@@ -91,3 +91,28 @@ function followSave(profile_id) {
         
     })
 }
+
+
+// Function for liking / unliking
+function like(post_id) {
+    let post_like_button = `${post_id}_like_button`;
+    let post_likes = `${post_id}_likes`;
+    fetch('/like', {
+        method: 'PUT',
+        headers: { // Set the X-CSRFToken header to the csrf token obtained from getCookie
+            "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: JSON.stringify({
+            post: post_id,
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById(post_likes).innerHTML = `${data.total_likes} likes`;
+        if (data.user_like === true) {
+            document.getElementById(post_like_button).innerHTML = 'Unlike';
+        } else {
+            document.getElementById(post_like_button).innerHTML = 'Like';
+        }
+    })
+}

@@ -44,7 +44,15 @@
                         {{ post.date_added }}
                     </div>
                     <div class="text-muted">
-                        {{ post.likes }} likes
+                        {% if post.user.id != user.id and user.is_authenticated %}
+                            {% if user in post.likes %}
+                                <span id="{{ post.id }}_likes">{{ post.likes_count }} likes</span><button class="btn btn-primary ml-3" type="submit" id="{{ post.id }}_like_button" onclick="like( {{post.id}} )">Unlike</button>
+                            {% else %}
+                                <span id="{{ post.id }}_likes">{{ post.likes_count }} likes</span><button class="btn btn-primary ml-3" type="submit" id="{{ post.id }}_like_button" onclick="like( {{post.id}} )">Like</button>
+                            {% endif %}
+                        {% else %}
+                            <span id="{{ post.id }}_likes">{{ post.likes_count }} likes</span> 
+                        {% endif %}
                     </div>
                 </div>
             </div>
