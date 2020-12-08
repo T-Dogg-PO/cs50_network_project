@@ -2,16 +2,10 @@
 {% load static %}
 
 {% block body %}
-    {% if user.is_authenticated %}
-        <form action="{% url 'index' %}" method="POST">
-            {% csrf_token %}
-            <div class="form-group ml-5">
-                <label for="newPost" class="h4">New Post</label>
-                {{ new_post }}
-                <input class="btn btn-primary mt-2" type="submit" value="Submit new post">
-            </div>
-        </form>
-    {% endif %}
+
+    <h4>Posts from users you are following</h4>
+
+    <h6>You are following <span id="following_count">{{ following_count }}</span> users</h6>
 
     {% for post in page_obj %}
         <div class="post">
@@ -31,8 +25,6 @@
                                 <button onclick="saveEdit( {{post.id}} )">Save</button>
                             </div>
 
-                        
-
                         </div>
                     {% endif %}
 
@@ -45,7 +37,7 @@
                     </div>
                     <div class="text-muted">
                         {% if post.user.id != user.id and user.is_authenticated %}
-                            {% if user.id in post.likes.id %}
+                            {% if user in post.likes %}
                                 <span id="{{ post.id }}_likes">{{ post.likes_count }} likes</span><button class="btn btn-primary ml-3" type="submit" id="{{ post.id }}_like_button" onclick="like( {{post.id}} )">Unlike</button>
                             {% else %}
                                 <span id="{{ post.id }}_likes">{{ post.likes_count }} likes</span><button class="btn btn-primary ml-3" type="submit" id="{{ post.id }}_like_button" onclick="like( {{post.id}} )">Like</button>
@@ -57,8 +49,10 @@
                 </div>
             </div>
 
-        </div>        
+        </div>
+        
     {% endfor %}
+
     <nav>
         <ul class="pagination ml-5 mt-2">
             {% if page_obj.has_previous %}
@@ -107,4 +101,3 @@
         </ul>
     </nav>
 {% endblock %}
-

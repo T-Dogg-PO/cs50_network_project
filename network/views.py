@@ -135,6 +135,37 @@ def profile(request, requested_user_id):
     })
 
 
+# View for loading the following of a user
+@login_required
+def following(request):
+    # Get all of the users that this user is following from UserFollowing
+    following_obj = request.user.following.all()
+    # Count the number of users that we are following so that we can display this on our page
+    if following_obj == None:
+        following_count = 0
+    else:
+        following_count = len(following_obj)
+        
+    # Setting up pagination to only show 10 posts on the page at once
+    # Get all posts that have been made by followed users, ordered by date added
+    # Filter is looking for the user_id field (a field for the UserFollowing model)
+    # matching id values found in following_obj above.
+    following_posts = Post.objects.filter(user_id__in=following_obj.values('following_user_id')).order_by('-date_added')
+    # Use the Paginator function to split all_posts into pages of 10
+    paginator = Paginator(following_posts, 10)
+
+    # Get the information for what page the user wants to view
+    page_number = request.GET.get('page')
+    # Get a page object using both the page number and the paginator above
+    page_obj = paginator.get_page(page_number)
+
+    # Load the profile page
+    return render(request, "network/following.html", {
+        "page_obj": page_obj,
+        "following_count": following_count,
+    })
+
+
 # View for following/unfollowing, to be used by JavaScript
 @login_required
 def follow(request):
