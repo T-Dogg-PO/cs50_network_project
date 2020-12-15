@@ -7,8 +7,9 @@ from django import forms
 import json
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db.models import Count, OuterRef, Subquery
 
-from .models import User, Post, UserFollowing
+from .models import User, Post, UserFollowing, Likes
 
 # Set up Django Form for submitting a new post
 class Create(forms.ModelForm):
@@ -27,6 +28,7 @@ class Create(forms.ModelForm):
 
 # Will take users to the 'All Posts' page. If request.method is post, submit a new Post instead
 def index(request):
+    # Check if the user is submitting a new post from the index page, and create a post object in database
     if request.method == "POST":
         create_post = Create(request.POST)
 
@@ -37,8 +39,19 @@ def index(request):
             new_post.save()
 
             # Setting up pagination to only show 10 posts on the page at once
-            # Get all posts ordered by date added
-            all_posts = Post.objects.all().order_by('-date_added')
+            # Get all the likes for our posts
+            likes = Likes.objects.filter(liked_post=OuterRef('pk'))
+            # Get all posts ordered by date added, annotate with the number of likes on the post
+            all_posts = Post.objects.all().order_by('-date_added').annotate(likes_count=Count(likes.values('id')))
+            # Check if the user is logged in, then check to see if the user has already liked each post
+            if request.user.is_authenticated:
+                for i in all_posts:
+                    if Likes.objects.filter(liked_post=i, liking_user=request.user).exists():
+                        user_liked = True
+                    else:
+                        user_liked = False
+                    i.user_had_liked = user_liked
+
             # Use the Paginator function to split all_posts into pages of 10
             paginator = Paginator(all_posts, 10)
 
@@ -47,14 +60,26 @@ def index(request):
             # Get a page object using both the page number and the paginator above
             page_obj = paginator.get_page(page_number)
 
+            # Reload the index page with the new post
             return render(request, "network/index.html", {
                 "page_obj": page_obj,
                 "new_post": Create()
             })
 
     # Setting up pagination to only show 10 posts on the page at once
-    # Get all posts ordered by date added
-    all_posts = Post.objects.all().order_by('-date_added')
+    # Get all the likes for our posts
+    likes = Likes.objects.filter(liked_post=OuterRef('pk'))
+    # Get all posts ordered by date added, annotate with the number of likes on the post
+    all_posts = Post.objects.all().order_by('-date_added').annotate(likes_count=Count(likes.values('id')))
+    # Check if the user is logged in, then check to see if the user has already liked each post
+    if request.user.is_authenticated:
+        for i in all_posts:
+            if Likes.objects.filter(liked_post=i, liking_user=request.user).exists():
+                user_liked = True
+            else:
+                user_liked = False
+            i.user_had_liked = user_liked
+
     # Use the Paginator function to split all_posts into pages of 10
     paginator = Paginator(all_posts, 10)
 
@@ -65,7 +90,7 @@ def index(request):
 
     return render(request, "network/index.html", {
         "page_obj": page_obj,
-        "new_post": Create()
+        "new_post": Create(),
     })
 
 
@@ -116,8 +141,19 @@ def profile(request, requested_user_id):
         existing_follow_button = False
 
     # Setting up pagination to only show 10 posts on the page at once
+    # Get all the likes for our posts
+    likes = Likes.objects.filter(liked_post=OuterRef('pk'))
     # Get all posts ordered by date added
-    all_posts = Post.objects.filter(user=profile_user).order_by('-date_added')
+    all_posts = Post.objects.filter(user=profile_user).order_by('-date_added').annotate(likes_count=Count(likes.values('id')))
+    # Check if the user is logged in, then check to see if the user has already liked each post
+    if request.user.is_authenticated:
+        for i in all_posts:
+            if Likes.objects.filter(liked_post=i, liking_user=request.user).exists():
+                user_liked = True
+            else:
+                user_liked = False
+            i.user_had_liked = user_liked
+
     # Use the Paginator function to split all_posts into pages of 10
     paginator = Paginator(all_posts, 10)
 
@@ -147,10 +183,21 @@ def following(request):
         following_count = len(following_obj)
         
     # Setting up pagination to only show 10 posts on the page at once
+    # Get all the likes for our posts
+    likes = Likes.objects.filter(liked_post=OuterRef('pk'))
     # Get all posts that have been made by followed users, ordered by date added
     # Filter is looking for the user_id field (a field for the UserFollowing model)
     # matching id values found in following_obj above.
-    following_posts = Post.objects.filter(user_id__in=following_obj.values('following_user_id')).order_by('-date_added')
+    following_posts = Post.objects.filter(user_id__in=following_obj.values('following_user_id')).order_by('-date_added').annotate(likes_count=Count(likes.values('id')))
+    # Check if the user is logged in, then check to see if the user has already liked each post
+    if request.user.is_authenticated:
+        for i in following_posts:
+            if Likes.objects.filter(liked_post=i, liking_user=request.user).exists():
+                user_liked = True
+            else:
+                user_liked = False
+            i.user_had_liked = user_liked
+
     # Use the Paginator function to split all_posts into pages of 10
     paginator = Paginator(following_posts, 10)
 
@@ -208,23 +255,32 @@ def like(request):
     if request.method != "PUT":
         return JsonResponse({"error": "PUT request required."}, status=400)
 
+    # Isolate the post_id from the json data
     data = json.loads(request.body)
     post_id = data["post"]
 
+    # Find the post in question in our database
     post = Post.objects.get(id=post_id)
-
-    liking_user = request.user
+    # Get the liking user
+    liking_user_new = request.user
 
     user_like = False
 
-    if post.likes.filter(id=liking_user.id).exists():
-        post.likes.remove(liking_user)
-        user_like = False
-    else:
-        post.likes.add(request.user)
-        user_like = True
+    # Check for an existing like
+    try:
+        existing_like = Likes.objects.get(liking_user=liking_user_new, liked_post=post)
+    except Likes.DoesNotExist:
+        existing_like = None
     
-    total_likes = post.likes.all().count()
+    # Either create a new Likes object for this user and post or delete the existing one
+    if existing_like == None:
+        new_like = Likes.objects.create(liking_user=liking_user_new, liked_post=post)
+        user_like = True
+    else:
+        existing_like.delete()
+    
+    # Get the new Likes count for this post so that we can update the page without reloading
+    total_likes = Likes.objects.filter(liked_post=post).count()
 
     return JsonResponse({
         "total_likes": total_likes,
